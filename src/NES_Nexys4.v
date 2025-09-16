@@ -308,6 +308,11 @@ module NES_Nexys4(input CLK100MHZ,
   wire [9:0] vga_hcounter, doubler_x;
   wire [9:0] vga_vcounter;
   
+  // this is the part that needs replacing
+  // OPTION 1: swap component with ppu driving display sync
+  // OPTION 2: swap component with HDMI driving display sync (needs more memory for a buffer)
+  // OPTION 3: reconfig vga component to hook into HDMI component still needing to chose OPTION 1 or 2
+  // components still need to convert bit information from 444 to 888
   VgaDriver vga(clk, vga_h, vga_v, vga_r, vga_g, vga_b, vga_hcounter, vga_vcounter, doubler_x, doubler_pixel, doubler_sync, SW[0]);
   
   wire [14:0] pixel_in = pallut[color];
