@@ -43,7 +43,7 @@ def prog(suite_bin, bit_file):
         raise FileNotFoundError(f"start.bat not found in {suite_bin.parent}")
     
     try:
-        process = subprocess.run(
+        _ =subprocess.run(
             f'cmd /c " call {start_bat} && {openFPGALoader_cmd}"',
             shell=True,
             stdout=subprocess.PIPE,

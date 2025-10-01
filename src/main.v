@@ -1,6 +1,6 @@
-module main(
+module main( // match io names to the values found in the lpf file
     input clk_25mhz,
-    output reg adc_miso
+    output reg adc_miso 
 );
 localparam MAX = 2_500_000;
 localparam WIDTH = $clog2(MAX);
