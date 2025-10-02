@@ -10,6 +10,7 @@ This project is a port of the Nintendo Entertainment System FPGA solutions to an
 
 ```cmd
 cd src
+apio clean
 apio build
 cd ..
 python prog.py
