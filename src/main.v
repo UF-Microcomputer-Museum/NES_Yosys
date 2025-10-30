@@ -7,53 +7,58 @@ module main( // match io names to the values found in the lpf file
     output wifi_gpio0
 );
 
-assign wifi_gpio0 = 1'b1;
+    assign wifi_gpio0 = 1'b1;
 
-wire clk_25MHz, clk_250MHz;
-// clk250MHz generator... look more into it to generate the nes clk
-clock clock_inst(
-    .clkin_25MHz(clk_25mhz),
-    .clk_25MHz(clk_25MHz),
-    .clk_250MHz(clk_250MHz)
-);
+    wire clk_25MHz, clk_250MHz;
 
-wire [7:0] red, grn, blu;
-wire [23:0] pixel;
-assign red = pixel[23:16];
-assign grn = pixel[15:8];
-assign blu = pixel[7:0];
+    clock clock_inst(
+        .clkin_25MHz(clk_25mhz),
+        .clk_25MHz(clk_25MHz),
+        .clk_250MHz(clk_250MHz)
+    );
 
-wire o_red, o_grn, o_blu;
-wire o_rd, o_newline, o_newframe;
+    wire [7:0] red, grn, blu;
+    wire [23:0] pixel;
+    assign red = pixel[23:16];
+    assign grn = pixel[15:8];
+    assign blu = pixel[7:0];
 
-reg[2:0] rst_cnt = 0;
-wire rst = ~rst_cnt[2];
+    wire o_red, o_grn, o_blu;
+    wire o_rd, o_newline, o_newframe;
 
-always @(posedge clk_25MHz) begin
-    if (rst) begin
-        rst_cnt <= rst_cnt + 1;
-    end
-end
+    wire rst;
 
-llhdmi hdimi_inst(
-    .i_tmdsclk(clk_250MHz), .i_pixclk(clk_25mhz),
-    .i_reset(rst), .i_red(red), .i_grn(grn), .i_blu(blu),
-    .o_rd(o_rd), .o_newline(o_newline), .o_newframe(o_newframe),
-    .o_red(o_red), .o_grn(o_grn), .o_blu(o_blu)
-);
+    ppu ppu_inst(
+        .clk(clk_25mhz),
+        .i_rd(o_rd),
+        .o_pixel(pixel),
+        .o_rst(rst)
+    );
+
+    llhdmi hdimi_inst(
+        .i_tmdsclk(clk_250MHz), .i_pixclk(clk_25mhz),
+        .i_reset(rst), .i_red(red), .i_grn(grn), .i_blu(blu),
+        .o_rd(o_rd), .o_newline(o_newline), .o_newframe(o_newframe),
+        .o_red(o_red), .o_grn(o_grn), .o_blu(o_blu)
+    );
 
 
-vgatestsrc #(.BITS_PER_COLOR(8))
-vgatestsrc_inst(
-    .i_pixclk(clk_25MHz), .i_reset(rst),
-    .i_width(256), .i_height(240),
-    .i_rd(o_rd), .i_newline(o_newline), .i_newframe(o_newframe),
-    .o_pixel(pixel)
-);
 
-OBUFDS OBUFDS_red(.I(o_red), .O(gpdi_dp[2]), .OB(gpdi_dn[2]));
-OBUFDS OBUFDS_grn(.I(o_grn), .O(gpdi_dp[1]), .OB(gpdi_dn[1]));
-OBUFDS OBUFDS_blu(.I(o_blu), .O(gpdi_dp[0]), .OB(gpdi_dn[0]));
-OBUFDS OBUFDS_clock(.I(clk_25MHz), .O(gpdi_dp[3]), .OB(gpdi_dn[3]));
+    // replace
+    /* 
+    vgatestsrc #(.BITS_PER_COLOR(8))
+    vgatestsrc_inst(
+        .i_pixclk(clk_25MHz), .i_reset(rst),
+        .i_width(640), .i_height(480),
+        .i_rd(o_rd), .i_newline(o_newline), .i_newframe(o_newframe),
+        .o_pixel(pixel)
+    );
+    */
+    
+
+    OBUFDS OBUFDS_red(.I(o_red), .O(gpdi_dp[2]), .OB(gpdi_dn[2]));
+    OBUFDS OBUFDS_grn(.I(o_grn), .O(gpdi_dp[1]), .OB(gpdi_dn[1]));
+    OBUFDS OBUFDS_blu(.I(o_blu), .O(gpdi_dp[0]), .OB(gpdi_dn[0]));
+    OBUFDS OBUFDS_clock(.I(clk_25MHz), .O(gpdi_dp[3]), .OB(gpdi_dn[3]));
 
 endmodule
