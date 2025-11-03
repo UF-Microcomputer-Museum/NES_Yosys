@@ -43,6 +43,8 @@ module main( // match io names to the values found in the lpf file
     );
 
 
+
+    // MAYBE CHANGE NAMES
     cpu cpu(.clk(clk),      // input, clock
             .reset(reset),  // input, reset 
             .AB(AB),        // output, reg, address bus, 15:0
@@ -53,7 +55,7 @@ module main( // match io names to the values found in the lpf file
             .NMI(NMI),      // input, non-maskable interrupt request
             .RDY(RDY) );    // input, ready signal, pauses CPU when RDY=0
 
-    // MAYBE MOVE THIS TO cpu.v
+    // MAYBE MOVE THIS TO cpu.v and MAYBE CHANGE NAMES
     cpu_ram cpu_ram(.clk(clk),  // input, clock
                     .address(address),  // input, address, 10:0
                     .write_enable(write_enable),    // input write_enable
