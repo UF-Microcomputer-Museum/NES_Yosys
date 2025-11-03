@@ -43,6 +43,23 @@ module main( // match io names to the values found in the lpf file
     );
 
 
+    cpu cpu(.clk(clk),      // input, clock
+            .reset(reset),  // input, reset 
+            .AB(AB),        // output, reg, address bus, 15:0
+            .DI(DI),        // input, data in, read bus, 7:0
+            .DO(DO),        // output, data out, write bus, 7:0
+            .WE(WE),        // output, write enable
+            .IRQ(IRQ),      // input, interrupt request
+            .NMI(NMI),      // input, non-maskable interrupt request
+            .RDY(RDY) );    // input, ready signal, pauses CPU when RDY=0
+
+    // MAYBE MOVE THIS TO cpu.v
+    cpu_ram cpu_ram(.clk(clk),  // input, clock
+                    .address(address),  // input, address, 10:0
+                    .write_enable(write_enable),    // input write_enable
+                    .write_data(write_data),    // input, write_data [7:0]
+                    .read_data(read_data) );    // output, read_data [7:0]
+
 
     // replace
     /* 

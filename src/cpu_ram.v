@@ -5,7 +5,7 @@ module cpu_ram (
     input wire [10:0] address, // 2^11 = 2048 <--- address locations of the bytes
     input wire write_enable, // determine if the ram should be read or written
     input wire [7:0] write_data, // get data to write to the ram
-    output wire [7:0] read_data, // use this wire to output the data from the ram
+    output reg [7:0] read_data, // use this wire to output the data from the ram
 );
 
     reg [7:0] ram [0:2048]; // Ram of 2k
