@@ -31,6 +31,8 @@ module main( // match io names to the values found in the lpf file
     ppu ppu_inst(
         .clk(clk_25mhz),
         .i_rd(o_rd),
+        .i_newline(o_newline),
+        .i_newframe(o_newframe),
         .o_pixel(pixel),
         .o_rst(rst)
     );
@@ -43,7 +45,7 @@ module main( // match io names to the values found in the lpf file
     );
 
 
-
+    /*
     // MAYBE CHANGE NAMES
     cpu cpu(.clk(clk),      // input, clock
             .reset(reset),  // input, reset 
@@ -61,7 +63,7 @@ module main( // match io names to the values found in the lpf file
                     .write_enable(write_enable),    // input write_enable
                     .write_data(write_data),    // input, write_data [7:0]
                     .read_data(read_data) );    // output, read_data [7:0]
-
+    */
 
     // replace
     /* 
