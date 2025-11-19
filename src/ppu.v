@@ -190,45 +190,35 @@ module ppu (
     output [23:0] o_pixel,
     output o_rst);
 
-    // Controll Reg 1
-    reg obj_patt;
-    reg bg_patt;
-    reg obj_size;
-    reg vbl_enable;
-
-    // Controll Reg 2
-    reg grayscale;
-    reg playfield_clip;
-    reg object_clip;
-    reg enble_playfield;
-    reg enable_objects;
-    reg [2:0] color_intensity;
-
-
-    initial begin
-        obj_patt = 0;
-        bg_patt = 0;
-        obj_size = 0;
-        vbl_enable = 0;
-        grayscale = 0;
-        playfield_clip = 0;
-        object_clip = 0;
-        enable_playfield = 0;
-        enable_objects = 0;
-        color_intensity = 0;
-    end
-
-
+    reg [8:0] x_cord;
+    reg [8:0] y_cord;
+    wire boundery;
+    assign boundery = x_cord[8] | y_cord[8];
 
     // test output
     reg [23:0] pixel;
     assign o_pixel = pixel;
 
     always @(posedge clk) begin
-        if (i_rd) pixel <= 24'h716AB8;
+        if (i_rd & ~boundery) begin
+            pixel <= 24'h716AB8;
+        end
         else pixel <= 24'h000000;
     end
 
+    always @(posedge clk) begin
+        if (i_newframe) begin
+            y_cord <= 9'b0;
+            x_cord <= 9'b0;
+        end
+        else if (i_newline) begin
+            y_cord <= y_cord + 1;
+            x_cord <= 9'b0;
+        end
+        else x_cord <= x_cord + 1;
+    end
+
+    // reset
     reg[2:0] rst_cnt = 0;
     assign o_rst = ~rst_cnt[2];
 
