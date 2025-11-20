@@ -180,31 +180,31 @@ endmodule  // SpriteRAM
 
 // core module
 module ppu (
-    input clk,
-    input i_rst,
-    input i_rd,
-    input i_newline,
-    input i_newframe,
-    output [23:0] o_pixel,
-    output o_rst);
+        input clk,
+        input i_rst,
+        input i_rd,
+        input i_newline,
+        input i_newframe,
+        output [23:0] o_pixel,
+        output o_rst);
 
     reg [9:0] c_pos_x;
     reg [9:0] c_pos_y;
     wire boundery;
-    assign boundery = (c_pos_x[9:8] != 2'b00 || c_pos_y[9:8] != 2'b00);
+    assign boundery = (c_pos_x[9] != 1'b0 || c_pos_y > 479);
 
     // test output
-    reg [23:0] pixel;
-    assign o_pixel = pixel;
+    assign o_pixel = boundery ? 24'h000000 :
+                     enable ? 24'hFF0000   : 24'h716AB8;
 
     // position to render sprite
-    wire[7:0] pos_x;
-    assign pos_x = 8'h84;
+    wire[9:0] pos_x;
+    assign pos_x = 9'h084;
     wire[9:0] pos_y;
-    assign pos_y = 10'h0a7;
+    assign pos_y = 10'h0a8;
 
     wire check;
-    assign check = c_pos_y >= pos_y && c_pos_y <= pos_y + 9'h07;
+    assign check = c_pos_y >= pos_y && c_pos_y <= pos_y + 9'd15;
     wire [9:0] offset;
     assign offset = c_pos_y - pos_y;
 
@@ -229,26 +229,10 @@ module ppu (
     wire[4:0] bits;
     reg [15:0] value;
 
-    assign load_in = {value[15:8], value[7:0], pos_x, tp};
+    assign load_in = {value[15:8], value[7:0], pos_x[7:0], tp};
     reg [3:0] load;
 
     Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
-
-    always @(posedge clk) begin
-        if (i_rd & ~boundery) begin
-            /*
-            if (bits[1:0] != 0) begin
-                pixel <= 24'hFF0000;
-            end
-            else begin
-                pixel <= 24'h716AB8;
-            end
-            */
-            if (enable) pixel <= 24'hFF0000;
-            else pixel <= 24'h716AB8;
-        end
-        else pixel <= 24'h000000;
-    end
 
     // handle sprite
     always @(posedge clk) begin
@@ -256,25 +240,10 @@ module ppu (
         if (i_newframe) begin
             c_pos_y <= 9'b0;
             c_pos_x <= 9'b0;
-            /*
-            if (check) begin
-                enable <= 1'b1;
-                value <= sprite_image[offset[2:0]];
-                load = 4'b1111;
-            end else enable <= 1'b0;
-            */
         end
         else if (i_newline) begin
             c_pos_y <= c_pos_y + 1;
             c_pos_x <= 9'b0;
-            /*
-            if (check) begin
-                enable <= 1'b1;
-                value <= sprite_image[offset[2:0]];
-                load = 4'b1111;
-                c_pos_x <= 9'b0;
-            end else enable <= 1'b0;
-            */
         end
         else if (i_rd) c_pos_x <= c_pos_x + 1;
     end
@@ -326,14 +295,14 @@ module ppu (
     always @(posedge clk) begin
         case (cur_state)
             PREP: begin // SET UP SPRITE FOR NEXT LINE
-                value <= sprite_image[offset[2:0]];
+                if (~c_pos_y[0])
+                    value <= sprite_image[offset[3:1]];
                 load <= 4'b1111;
                 enable <= 1'h0;
                 count <= 9'h000;
             end
             RENDER: begin // SET SPRITE TO ENABLED
-                //enable <= check;
-                if (c_pos_x[7:0] >= pos_x && c_pos_x[7:0] <= pos_x + 8'd15 && check) begin
+                if (c_pos_x[7:0] >= pos_x && c_pos_x <= pos_x + 9'd15 && check) begin
                     enable <= offset2[count[7:0]];
                     count <= count + 9'h001;
                 end
@@ -345,5 +314,4 @@ module ppu (
 
         endcase
     end
-
 endmodule
