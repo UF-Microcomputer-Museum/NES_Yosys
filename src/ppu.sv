@@ -188,16 +188,27 @@ module ppu (
     output [23:0] o_pixel,
     output o_rst);
 
-    reg [9:0] x_cord;
-    reg [9:0] y_cord;
+    reg [9:0] c_pos_x;
+    reg [9:0] c_pos_y;
     wire boundery;
-    assign boundery = (x_cord[9:8] != 2'b00 || y_cord[9:8] != 2'b00);
+    assign boundery = (c_pos_x[9:8] != 2'b00 || c_pos_y[9:8] != 2'b00);
 
     // test output
     reg [23:0] pixel;
     assign o_pixel = pixel;
 
-    
+    // position to render sprite
+    wire[7:0] pos_x;
+    assign pos_x = 8'h84;
+    wire[9:0] pos_y;
+    assign pos_y = 10'h0a7;
+
+    wire check;
+    assign check = c_pos_y >= pos_y && c_pos_y <= pos_y + 9'h07;
+    wire offset;
+    assign offset = c_pos_y - pos_y;
+
+
     // sprite
     reg [15:0] sprite_image [7:0];
     initial begin
@@ -207,12 +218,6 @@ module ppu (
 
     wire ce;
     assign ce = 1'b1;
-
-    // position to render sprite
-    wire[7:0] pos_x;
-    assign pos_x = 8'h84;
-    wire[9:0] pos_y;
-    assign pos_y = 10'h0a7;
 
     reg enable;
 
@@ -229,49 +234,51 @@ module ppu (
     reg [3:0] load;
 
     Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
-    
+
     always @(posedge clk) begin
         if (i_rd & ~boundery) begin
+            /*
             if (bits[1:0] != 0) begin
                 pixel <= 24'hFF0000;
             end
             else begin
                 pixel <= 24'h716AB8;
             end
+            */
+            if (check) pixel <= 24'hFF0000;
+            else pixel <= 24'h716AB8;
         end
         else pixel <= 24'h000000;
     end
 
-    wire check;
-    assign check = y_cord >= pos_y && y_cord <= pos_y + 7;
-    wire offset;
-    assign offset = y_cord - pos_y;
-
     // handle sprite
     always @(posedge clk) begin
-        load = 1'b0000;
+        //load = 1'b0000;
         if (i_newframe) begin
-            y_cord <= 9'b0;
-            x_cord <= 9'b0;
-            if (y_cord >= pos_y && y_cord <= pos_y + 7) begin
-                enable <= 1'b1;
-                value <= sprite_image[offset[2:0]];
-                load = 4'b1111;
-            end else enable <= 1'b0;
-        end
-        else if (i_newline) begin
-            y_cord <= y_cord + 1;
-            
-
+            c_pos_y <= 9'b0;
+            c_pos_x <= 9'b0;
+            /*
             if (check) begin
                 enable <= 1'b1;
                 value <= sprite_image[offset[2:0]];
                 load = 4'b1111;
-                x_cord <= 9'b0;
             end else enable <= 1'b0;
+            */
         end
-        else if (i_rd) x_cord <= x_cord + 1;
+        else if (i_newline) begin
+            c_pos_y <= c_pos_y + 1;
+            /*
+            if (check) begin
+                enable <= 1'b1;
+                value <= sprite_image[offset[2:0]];
+                load = 4'b1111;
+                c_pos_x <= 9'b0;
+            end else enable <= 1'b0;
+            */
+        end
+        else if (i_rd) c_pos_x <= c_pos_x + 1;
     end
+    
 
     // reset
     reg[2:0] rst_cnt = 0;
@@ -282,4 +289,41 @@ module ppu (
             rst_cnt <= rst_cnt + 1;
         end
     end
+
+    // FSM
+    typedef enum {START, IDLE, PREP, RENDER} states;
+    reg [1:0] cur_state, next_state;
+
+    always @(posedge clk) begin
+        if (~rst_cnt[2]) cur_state <= START;
+        else cur_state <= next_state;
+    end
+
+    always @(posedge clk) begin
+        enable <= 1'h0;
+        case (cur_state)
+            START: begin // CHECK IF SPRITE NEEDS TO LOAD ON FIRST LINE
+                if (check)
+                    next_state <= PREP;
+                else 
+                    next_state <= IDLE;
+            end
+            IDLE: // WAIT FOR NEW LINE OR FRAME
+                if (i_newline || i_newframe) next_state <= RENDER;
+            PREP: begin // SET UP SPRITE FOR NEXT LINE
+                value <= sprite_image[offset[2:0]];
+                load <= 4'b1111;
+                if (boundery) next_state <= RENDER;
+                else next_state <= IDLE;
+            end
+            RENDER: // SET SPRITE TO ENABLED
+                if (check) enable <= 1'H1;
+                else enable <= 1'H0;
+
+                if (~boundery) next_state <= PREP;
+            default:
+                next_state = START;
+        endcase
+    end
+
 endmodule
