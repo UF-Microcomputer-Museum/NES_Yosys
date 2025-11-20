@@ -205,7 +205,7 @@ module ppu (
 
     wire check;
     assign check = c_pos_y >= pos_y && c_pos_y <= pos_y + 9'h07;
-    wire offset;
+    wire [9:0] offset;
     assign offset = c_pos_y - pos_y;
 
 
@@ -245,7 +245,7 @@ module ppu (
                 pixel <= 24'h716AB8;
             end
             */
-            if (check) pixel <= 24'hFF0000;
+            if (bits[2:0] != 0) pixel <= 24'hFF0000;
             else pixel <= 24'h716AB8;
         end
         else pixel <= 24'h000000;
@@ -267,6 +267,7 @@ module ppu (
         end
         else if (i_newline) begin
             c_pos_y <= c_pos_y + 1;
+            c_pos_x <= 9'b0;
             /*
             if (check) begin
                 enable <= 1'b1;
@@ -303,24 +304,21 @@ module ppu (
         enable <= 1'h0;
         case (cur_state)
             START: begin // CHECK IF SPRITE NEEDS TO LOAD ON FIRST LINE
-                if (check)
-                    next_state <= PREP;
-                else 
-                    next_state <= IDLE;
+                next_state = check ? PREP : IDLE;
             end
             IDLE: // WAIT FOR NEW LINE OR FRAME
                 if (i_newline || i_newframe) next_state <= RENDER;
             PREP: begin // SET UP SPRITE FOR NEXT LINE
                 value <= sprite_image[offset[2:0]];
                 load <= 4'b1111;
-                if (boundery) next_state <= RENDER;
-                else next_state <= IDLE;
+                next_state = boundery ? RENDER : IDLE;
             end
-            RENDER: // SET SPRITE TO ENABLED
+            RENDER: begin // SET SPRITE TO ENABLED
                 if (check) enable <= 1'H1;
                 else enable <= 1'H0;
 
-                if (~boundery) next_state <= PREP;
+                next_state = boundery ? RENDER : PREP;
+            end
             default:
                 next_state = START;
         endcase
