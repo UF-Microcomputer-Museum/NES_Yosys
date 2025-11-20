@@ -188,69 +188,94 @@ module ppu (
     output [23:0] o_pixel,
     output o_rst);
 
-    reg [8:0] x_cord;
-    reg [8:0] y_cord;
+    reg [9:0] x_cord;
+    reg [9:0] y_cord;
     wire boundery;
-    assign boundery = x_cord[8] | y_cord[8];
+    assign boundery = x_cord[9:8] != 0 | y_cord[9:8] != 0;
 
     // test output
     reg [23:0] pixel;
     assign o_pixel = pixel;
 
+    
     // sprite
     reg [15:0] sprite_image [0:7];
+    reg [8:0] sprite_index;
     initial begin
         $readmemh("test_sprite_8x8.txt", sprite_image);
     end
 
+    wire ce;
+    assign ce = 1'b1;
+
+    // position to render sprite
+    wire[9:0] pos_x;
+    assign pos_x = 10'h084;
+    wire[9:0] pos_y;
+    assign pos_y = 10'h0a7;
+
+    reg enable;
+
+    /*
     wire[27:0] load_out;
     reg[27:0] load_in;
 
     wire[2:0] tp;
     assign tp = 1'b000;
 
-    wire ce;
-    assign ce = 1'b1;
+    
 
     reg[3:0] load;
 
-    wire enable;
+    
 
     wire[4:0] bits;
 
-    wire[9:0] pos_x;
-    assign pos_x = 10'h084;
-    wire[9:0] pos_y;
-    assign pos_y = 10'h0a7;
+    
 
     
     //                                     tp   bits[4:2]??? idk
     assign load_in = {sprite_image[], x_cord, tp};
-    
-    Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
+    */
 
+
+    Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
+    
     always @(posedge clk) begin
         if (i_rd & ~boundery) begin
+            /*
             if (bits[1:0] != 0) begin
                 pixel <= 24'h716AB8;
             end
             else begin
                 pixel <= 24'h000000;
             end
+            */
+            pixel <= 24'h716AB8;
         end
         else pixel <= 24'h000000;
     end
 
+
+    // handle sprite
     always @(posedge clk) begin
         if (i_newframe) begin
             y_cord <= 9'b0;
             x_cord <= 9'b0;
+            if (y_cord >= y_pos | y_cord <= y_pos + 7) begin
+                enable <= 1'b1;
+            end
         end
         else if (i_newline) begin
             y_cord <= y_cord + 1;
+
+            if (y_cord >= y_pos | y_cord <= y_pos + 7) begin
+                enable <= 1'b1;
+            end
+
             x_cord <= 9'b0;
         end
-        else x_cord <= x_cord + 1;
+        else if (i_rd) x_cord <= x_cord + 1;
     end
 
     // reset
@@ -260,6 +285,7 @@ module ppu (
     always @(posedge clk) begin
         if (o_rst) begin
             rst_cnt <= rst_cnt + 1;
+            enable <= 1'b0;
         end
     end
 endmodule
