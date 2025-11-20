@@ -213,7 +213,6 @@ module ppu (
     reg [15:0] sprite_image [7:0];
     initial begin
         $readmemb("test_sprite_8x8.txt", sprite_image);
-        enable <= 1'b0;
     end
 
     wire ce;
@@ -245,7 +244,7 @@ module ppu (
                 pixel <= 24'h716AB8;
             end
             */
-            if (bits[2:0] != 0) pixel <= 24'hFF0000;
+            if (enable) pixel <= 24'hFF0000;
             else pixel <= 24'h716AB8;
         end
         else pixel <= 24'h000000;
@@ -291,6 +290,18 @@ module ppu (
         end
     end
 
+    wire offset2 [0:7];
+    assign offset2[0] = value[15] | value[7];
+    assign offset2[1] = value[14] | value[6];
+    assign offset2[2] = value[13] | value[5];
+    assign offset2[3] = value[12] | value[4];
+    assign offset2[4] = value[11] | value[3];
+    assign offset2[5] = value[10] | value[2];
+    assign offset2[6] = value[ 9] | value[1];
+    assign offset2[7] = value[ 8] | value[0];
+
+    reg [9:0] count;
+
     // FSM
     typedef enum {START, IDLE, PREP, RENDER} states;
     reg [1:0] cur_state, next_state;
@@ -301,26 +312,37 @@ module ppu (
     end
 
     always @(posedge clk) begin
-        enable <= 1'h0;
+        next_state = cur_state;
         case (cur_state)
-            START: begin // CHECK IF SPRITE NEEDS TO LOAD ON FIRST LINE
-                next_state = check ? PREP : IDLE;
-            end
-            IDLE: // WAIT FOR NEW LINE OR FRAME
-                if (i_newline || i_newframe) next_state <= RENDER;
+            START: next_state = check ? PREP : IDLE;
+            IDLE: if (i_newline || i_newframe) next_state = RENDER;
+            PREP: if (~boundery) next_state = RENDER;
+            RENDER: if (boundery) next_state = PREP;
+            default:
+                next_state = START;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        case (cur_state)
             PREP: begin // SET UP SPRITE FOR NEXT LINE
                 value <= sprite_image[offset[2:0]];
                 load <= 4'b1111;
-                next_state = boundery ? RENDER : IDLE;
+                enable <= 1'h0;
+                count <= 9'h000;
             end
             RENDER: begin // SET SPRITE TO ENABLED
-                if (check) enable <= 1'H1;
-                else enable <= 1'H0;
-
-                next_state = boundery ? RENDER : PREP;
+                //enable <= check;
+                if (c_pos_x[7:0] >= pos_x && c_pos_x[7:0] <= pos_x + 8'd15 && check) begin
+                    enable <= offset2[count[7:0]];
+                    count <= count + 9'h001;
+                end
+                else enable <= 1'h0;
             end
-            default:
-                next_state = START;
+            default: begin
+                load <= 4'b0000;
+            end
+
         endcase
     end
 
