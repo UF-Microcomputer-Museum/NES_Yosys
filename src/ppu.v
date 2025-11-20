@@ -178,8 +178,6 @@ module SpriteRAM(input clk, input ce,
     end
 endmodule  // SpriteRAM
 
-
-
 // core module
 module ppu (
     input clk,
@@ -199,9 +197,46 @@ module ppu (
     reg [23:0] pixel;
     assign o_pixel = pixel;
 
+    // sprite
+    reg [15:0] sprite_image [0:7];
+    initial begin
+        $readmemh("test_sprite_8x8.txt", sprite_image);
+    end
+
+    wire[27:0] load_out;
+    reg[27:0] load_in;
+
+    wire[2:0] tp;
+    assign tp = 1'b000;
+
+    wire ce;
+    assign ce = 1'b1;
+
+    reg[3:0] load;
+
+    wire enable;
+
+    wire[4:0] bits;
+
+    wire[9:0] pos_x;
+    assign pos_x = 10'h084;
+    wire[9:0] pos_y;
+    assign pos_y = 10'h0a7;
+
+    
+    //                                     tp   bits[4:2]??? idk
+    assign load_in = {sprite_image[], x_cord, tp};
+    
+    Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
+
     always @(posedge clk) begin
         if (i_rd & ~boundery) begin
-            pixel <= 24'h716AB8;
+            if (bits[1:0] != 0) begin
+                pixel <= 24'h716AB8;
+            end
+            else begin
+                pixel <= 24'h000000;
+            end
         end
         else pixel <= 24'h000000;
     end
