@@ -200,7 +200,6 @@ module ppu (
     
     // sprite
     reg [15:0] sprite_image [0:7];
-    reg [8:0] sprite_index;
     initial begin
         $readmemh("test_sprite_8x8.txt", sprite_image);
     end
@@ -223,12 +222,10 @@ module ppu (
     wire[27:0] load_out;
     reg[27:0] load_in;
 
-    reg[3:0] load;
-
     wire[4:0] bits;
     wire [15:0] value;
 
-    assign load_in = {value, x_cord, tp};
+    assign load_in = {value, pos_x, tp};
     wire[3:0] load;
 
     Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
