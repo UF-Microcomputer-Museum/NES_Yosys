@@ -199,9 +199,10 @@ module ppu (
 
     
     // sprite
-    reg [15:0] sprite_image [0:7];
+    reg [15:0] sprite_image [7:0];
     initial begin
-        $readmemh("test_sprite_8x8.txt", sprite_image);
+        $readmemb("test_sprite_8x8.txt", sprite_image);
+        enable <= 1'b0;
     end
 
     wire ce;
@@ -224,22 +225,19 @@ module ppu (
     wire[4:0] bits;
     reg [15:0] value;
 
-    assign load_in = {value, pos_x, tp};
+    assign load_in = {value[15:8], value[7:0], pos_x, tp};
     reg [3:0] load;
 
     Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
     
     always @(posedge clk) begin
         if (i_rd & ~boundery) begin
-            /*
             if (bits[1:0] != 0) begin
                 pixel <= 24'hFF0000;
             end
             else begin
                 pixel <= 24'h716AB8;
             end
-            */
-            pixel <= 24'h716AB8;
         end
         else pixel <= 24'h000000;
     end
@@ -252,7 +250,6 @@ module ppu (
     // handle sprite
     always @(posedge clk) begin
         load = 1'b0000;
-        enable <= 1'b0;
         if (i_newframe) begin
             y_cord <= 9'b0;
             x_cord <= 9'b0;
@@ -260,7 +257,7 @@ module ppu (
                 enable <= 1'b1;
                 value <= sprite_image[offset[2:0]];
                 load = 4'b1111;
-            end
+            end else enable <= 1'b0;
         end
         else if (i_newline) begin
             y_cord <= y_cord + 1;
@@ -271,11 +268,7 @@ module ppu (
                 value <= sprite_image[offset[2:0]];
                 load = 4'b1111;
                 x_cord <= 9'b0;
-            end
-
-            
-
-            
+            end else enable <= 1'b0;
         end
         else if (i_rd) x_cord <= x_cord + 1;
     end
@@ -287,7 +280,6 @@ module ppu (
     always @(posedge clk) begin
         if (o_rst) begin
             rst_cnt <= rst_cnt + 1;
-            enable <= 1'b0;
         end
     end
 endmodule
