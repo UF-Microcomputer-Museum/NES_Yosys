@@ -209,35 +209,27 @@ module ppu (
     assign ce = 1'b1;
 
     // position to render sprite
-    wire[9:0] pos_x;
-    assign pos_x = 10'h084;
-    wire[9:0] pos_y;
-    assign pos_y = 10'h0a7;
+    wire[7:0] pos_x;
+    assign pos_x = 8'h084;
+    wire[7:0] pos_y;
+    assign pos_y = 8'h0a7;
 
-    reg enable;
-
-    /*
-    wire[27:0] load_out;
-    reg[27:0] load_in;
+    wire enable;
+    assign enable = 1'b1;
 
     wire[2:0] tp;
     assign tp = 1'b000;
 
-    
+    wire[27:0] load_out;
+    reg[27:0] load_in;
 
     reg[3:0] load;
 
-    
-
     wire[4:0] bits;
+    wire [15:0] value;
 
-    
-
-    
-    //                                     tp   bits[4:2]??? idk
-    assign load_in = {sprite_image[], x_cord, tp};
-    */
-
+    assign load_in = {value, x_cord, tp};
+    wire[3:0] load;
 
     Sprite sprite(clk, ce, enable, load, load_in, load_out, bits);
     
@@ -245,10 +237,10 @@ module ppu (
         if (i_rd & ~boundery) begin
             /*
             if (bits[1:0] != 0) begin
-                pixel <= 24'h716AB8;
+                pixel <= 24'hFF0000;
             end
             else begin
-                pixel <= 24'h000000;
+                pixel <= 24'h716AB8;
             end
             */
             pixel <= 24'h716AB8;
@@ -259,6 +251,7 @@ module ppu (
 
     // handle sprite
     always @(posedge clk) begin
+        load = 1'b0000;
         if (i_newframe) begin
             y_cord <= 9'b0;
             x_cord <= 9'b0;
@@ -268,10 +261,9 @@ module ppu (
         end
         else if (i_newline) begin
             y_cord <= y_cord + 1;
+            load = 1'b1111;
 
-            if (y_cord >= y_pos | y_cord <= y_pos + 7) begin
-                enable <= 1'b1;
-            end
+            value <= sprite_image[y_cord[7:0]];
 
             x_cord <= 9'b0;
         end
